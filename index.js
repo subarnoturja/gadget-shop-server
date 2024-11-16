@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
 require('dotenv').config()
 const app = express();
 const port = process.env.PORT || 5000;
@@ -40,6 +41,13 @@ run().catch(console.dir);
 // API
 app.get("/", (req, res) => {
     res.send("Gadget Shop server is running")
+})
+
+// JWT
+app.post('/authentication', async(req, res) => {
+  const userEmail = req.body 
+  const token = jwt.sign(userEmail, process.env.ACCESS_KEY_TOKEN, {expiresIn: '10d'});
+  res.send({ token })
 })
 
 app.listen(port, () => {
