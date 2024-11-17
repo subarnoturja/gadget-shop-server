@@ -6,7 +6,12 @@ const app = express();
 const port = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors())
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    optionsSuccessStatus: 200,
+  }
+))
 app.use(express.json())
 
 // MongoDB Connection
@@ -40,10 +45,17 @@ async function run() {
       if(existingUser){
         return res.send({ message: "user already exists "})
       }
-      
+
       const result = await userCollection.insertOne(user)
       res.send(result)
     } )
+
+    // Get User
+    app.get('/user/:email', async(req, res) => {
+      const query = { email : req.params.email }
+      const user = await userCollection.findOne(query)
+      res.send(user)
+    })
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
