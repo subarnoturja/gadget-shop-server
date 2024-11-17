@@ -14,6 +14,33 @@ app.use(
 ))
 app.use(express.json())
 
+// Token Verification
+const verifyJWT = (req, res, next) => {
+  const authorization = req.header.authorization;
+  if(!authorization){
+    return res.send({message: "No Token"})
+  }
+  const token = authorization.split(' ')[1];
+  jwt.verify(token, process.env.ACCESS_KEY_TOKEN, (err, decoded) => {
+    if(err){
+      return res.send({message: "Invalid Token"})
+    }
+    req.decoded= decoded;
+    next();
+  })
+};
+
+// Verify Seller
+const verifySeller = async(req, res, next) => {
+  const email = req.decoded.email;
+  const query = { email: email }
+  const user = await userCollection.findOne(query)
+  if(user?.role !== "seller"){
+    return res.send({message: "Forbidden access"})
+  }
+  next();
+}
+
 // MongoDB Connection
 
 const { MongoClient, ServerApiVersion } = require('mongodb');
@@ -55,6 +82,13 @@ async function run() {
       const query = { email : req.params.email }
       const user = await userCollection.findOne(query)
       res.send(user)
+    })
+
+    // Add Products
+    app.post('/add-products', verifyJWT, verifySeller, async(req, res) => {
+      const product = req.body;
+      const result = await productCollection.insertOne(product);
+      res.send(result)
     })
 
     // Send a ping to confirm a successful connection
