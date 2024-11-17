@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
+const { MongoClient, ServerApiVersion } = require('mongodb');
 require('dotenv').config()
 const app = express();
 const port = process.env.PORT || 5000;
@@ -14,36 +15,7 @@ app.use(
 ))
 app.use(express.json())
 
-// Token Verification
-const verifyJWT = (req, res, next) => {
-  const authorization = req.header.authorization;
-  if(!authorization){
-    return res.send({message: "No Token"})
-  }
-  const token = authorization.split(' ')[1];
-  jwt.verify(token, process.env.ACCESS_KEY_TOKEN, (err, decoded) => {
-    if(err){
-      return res.send({message: "Invalid Token"})
-    }
-    req.decoded= decoded;
-    next();
-  })
-};
-
-// Verify Seller
-const verifySeller = async(req, res, next) => {
-  const email = req.decoded.email;
-  const query = { email: email }
-  const user = await userCollection.findOne(query)
-  if(user?.role !== "seller"){
-    return res.send({message: "Forbidden access"})
-  }
-  next();
-}
-
 // MongoDB Connection
-
-const { MongoClient, ServerApiVersion } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.ixbaqca.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -62,6 +34,33 @@ async function run() {
 
     const userCollection = client.db('gadgetShop').collection("users");
     const productCollection = client.db('gadgetShop').collection("products");
+
+    // Token Verification
+    const verifyJWT = (req, res, next) => {
+      const authorization = req.headers.authorization;
+      if(!authorization){
+        return res.send({message: "No Token"})
+      }
+      const token = authorization.split(' ')[1];
+      jwt.verify(token, process.env.ACCESS_KEY_TOKEN, (err, decoded) => {
+        if(err){
+          return res.send({ message: "Invalid Token" })
+        }
+        req.decoded= decoded;
+        next();
+      })
+    };
+
+    // Verify Seller
+    const verifySeller = async(req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email }
+      const user = await userCollection.findOne(query)
+      if(user?.role !== "seller"){
+        return res.send({ message: "Forbidden access" })
+      }
+      next();
+    }
 
     // Insert User 
     app.post('/users', async(req, res) => {
