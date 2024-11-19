@@ -93,7 +93,7 @@ async function run() {
     // Get Products
     app.get('/all-products', async (req, res) => {
 
-      const { title, sort, category, brand } = req.query
+      const { title, sort, category, brand, page = 1, limit = 9 } = req.query
 
       const query = {} 
 
@@ -109,20 +109,22 @@ async function run() {
         query.brand = brand;
       }
 
+      const pageNumber = Number(page)
+      const limitNumber = Number(limit)
+
       const sortOption = sort === 'asc' ? 1 : -1
 
       const products = await productCollection
       .find(query)
+      .skip((pageNumber - 1) * limitNumber)
+      .limit(limitNumber)
       .sort({ price: sortOption })
       .toArray();
 
       const totalProducts = await productCollection.countDocuments(query);
 
-      const productInfo = await productCollection.find({},{projection: {category: 1, brand: 1}}).toArray();
-
-
-      const categories = [...new Set(productInfo.map((product) => product.category))]
-      const brands = [...new Set(productInfo.map((product) => product.brand))]
+      const categories = [...new Set(products.map((product) => product.category))]
+      const brands = [...new Set(products.map((product) => product.brand))]
 
       res.json({products, brands, categories, totalProducts});
 
