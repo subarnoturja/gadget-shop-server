@@ -90,6 +90,44 @@ async function run() {
       res.send(result)
     })
 
+    // Get Products
+    app.get('/all-products', async (req, res) => {
+
+      const { title, sort, category, brand } = req.query
+
+      const query = {} 
+
+      if(title){
+        query.title = {$regex: title, $options: 'i'};
+      }
+
+      if(category){
+        query.category = {$regex: title, $options: 'i'};
+      }
+
+      if(brand) {
+        query.brand = brand;
+      }
+
+      const sortOption = sort === 'asc' ? 1 : -1
+
+      const products = await productCollection
+      .find(query)
+      .sort({ price: sortOption })
+      .toArray();
+
+      const totalProducts = await productCollection.countDocuments(query);
+
+      const productInfo = await productCollection.find({},{projection: {category: 1, brand: 1}}).toArray();
+
+
+      const categories = [...new Set(productInfo.map((product) => product.category))]
+      const brands = [...new Set(productInfo.map((product) => product.brand))]
+
+      res.json({products, brands, categories, totalProducts});
+
+    })
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
